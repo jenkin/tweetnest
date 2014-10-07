@@ -58,7 +58,7 @@
 		global $twitterApi, $db, $config, $access, $search;
 		$p = trim($p);
 		if(!$twitterApi->validateUserParam($p)){ return false; }
-		$maxCount = 200;
+		$maxCount = (empty($config['q']) ? 200 : 100); // Search API limits are lower than the User timeline one
 		$tweets   = array();
 		$sinceID  = 0;
 		$maxID    = 0;
@@ -89,15 +89,17 @@
 		}
 		
 		echo l("User ID: " . $uid . "\n");
-		
-		// Find total number of tweets
-		$total = totalTweets($p);
-		if(is_numeric($total)){
-			if($total > 3200){ $total = 3200; } // Due to current Twitter limitation
-			$pages = ceil($total / $maxCount);
 
-			echo l("Total tweets: <strong>" . $total . "</strong>, Approx. page total: <strong>" . $pages . "</strong>\n");
-		}
+        if(empty($config['q'])) {
+    		// Find total number of tweets
+	    	$total = totalTweets($p);
+		    if(is_numeric($total)){
+		    	if($total > 3200){ $total = 3200; } // Due to current Twitter limitation
+			    $pages = ceil($total / $maxCount);
+
+    			echo l("Total tweets: <strong>" . $total . "</strong>, Approx. page total: <strong>" . $pages . "</strong>\n");
+            }
+        }
 
 		if($sinceID){
 			echo l("Newest tweet I've got: <strong>" . $sinceID . "</strong>\n");
@@ -123,11 +125,24 @@
             if($maxID){
                 $params['max_id']   = $maxID;
             }
+            if(!empty($config['q'])) {
+                $params['q'] = urlencode($config['q']);
+                $params['result_type'] = 'recent';
+            }
 
-            $data = $twitterApi->query('statuses/user_timeline', $params);
-			// Drop out on connection error
-			if(is_array($data) && $data[0] === false){ dieout(l(bad("Error: " . $data[1] . "/" . $data[2]))); }
-			
+            if(isset($params['q'])) {
+                $data = $twitterApi->query('search/tweets', $params);
+                if (is_object($data) && property_exists($data,'statuses')) {
+                    $data = $data->statuses;
+                } else { // Drop out on connection error
+                    dieout(l(bad("Error: " . $data[1] . "/" . $data[2])));
+                }
+            } else {
+                $data = $twitterApi->query('statuses/user_timeline', $params);
+			    // Drop out on connection error
+    			if(is_array($data) && $data[0] === false){ dieout(l(bad("Error: " . $data[1] . "/" . $data[2]))); }
+            }
+            
 			// Start parsing
 			echo l("<strong>" . ($data ? count($data) : 0) . "</strong> new tweets on this page\n");
 			if(!empty($data)){
@@ -184,58 +199,60 @@
 		} else {
 			echo l(bad("Nothing to insert.\n"));
 		}
-		
-		// Checking personal favorites -- scanning all
-		echo l("\n<strong>Syncing favourites...</strong>\n");
-		// Resetting these
-		$favs  = array(); $maxID = 0; $sinceID = 0; $page = 1;
-		do {
-			echo l("Retrieving page <strong>#" . $page . "</strong>:\n");
 
-            $params = array(
-                $userparam => $uservalue,
-                'count'    => $maxCount
-            );
+        if(empty($config['q'])) {    
+    		// Checking personal favorites -- scanning all
+	    	echo l("\n<strong>Syncing favourites...</strong>\n");
+		    // Resetting these
+    		$favs  = array(); $maxID = 0; $sinceID = 0; $page = 1;
+	    	do {
+		    	echo l("Retrieving page <strong>#" . $page . "</strong>:\n");
 
-            if($maxID){
-                $params['max_id']   = $maxID;
-            }
+                $params = array(
+                    $userparam => $uservalue,
+                    'count'    => $maxCount
+                );
+    
+                if($maxID){
+                    $params['max_id']   = $maxID;
+                }
 
-			$data = $twitterApi->query('favorites/list', $params);
+    			$data = $twitterApi->query('favorites/list', $params);
+    
+	    		if(is_array($data) && $data[0] === false){ dieout(l(bad("Error: " . $data[1] . "/" . $data[2]))); }
+		    	echo l("<strong>" . ($data ? count($data) : 0) . "</strong> total favorite tweets on this page\n");
 
-			if(is_array($data) && $data[0] === false){ dieout(l(bad("Error: " . $data[1] . "/" . $data[2]))); }
-			echo l("<strong>" . ($data ? count($data) : 0) . "</strong> total favorite tweets on this page\n");
+    			if(!empty($data)){
+	    			echo l("<ul>");
+		    		foreach($data as $i => $tweet){
+    
+                        // First, let's check if an API error occured
+                        if(is_array($tweet) && is_object($tweet[0]) && property_exists($tweet[0], 'message')){
+                            dieout(l(bad('A Twitter API error occured: ' . $tweet[0]->message)));
+                        }
 
-			if(!empty($data)){
-				echo l("<ul>");
-				foreach($data as $i => $tweet){
-
-                    // First, let's check if an API error occured
-                    if(is_array($tweet) && is_object($tweet[0]) && property_exists($tweet[0], 'message')){
-                        dieout(l(bad('A Twitter API error occured: ' . $tweet[0]->message)));
-                    }
-
-					if(!IS64BIT && $i == 0 && $maxID == $tweet->id_str){ unset($data[0]); continue; }
-					if($tweet->user->id_str == $uid){
-						echo l("<li>" . $tweet->id_str . " " . $tweet->created_at . "</li>\n");
-						$favs[] = $tweet->id_str;
-					}
-					$maxID = $tweet->id_str;
-					if(IS64BIT){
-						$maxID = (int)$tweet->id - 1;
-					}
-				}
-				echo l("</ul>");
-			}
-			echo l("<strong>" . count($favs) . "</strong> favorite own tweets so far\n");
-			$page++;
-		} while(!empty($data));
-		
-		// Blank all favorites
-		$db->query("UPDATE `".DTP."tweets` SET `favorite` = '0'");
-		// Insert favorites into DB
-		$db->query("UPDATE `".DTP."tweets` SET `favorite` = '1' WHERE `tweetid` IN ('" . implode("', '", $favs) . "')");
-		echo l(good("Updated favorites!"));
+    					if(!IS64BIT && $i == 0 && $maxID == $tweet->id_str){ unset($data[0]); continue; }
+	    				if($tweet->user->id_str == $uid){
+		    				echo l("<li>" . $tweet->id_str . " " . $tweet->created_at . "</li>\n");
+			    			$favs[] = $tweet->id_str;
+				    	}
+    					$maxID = $tweet->id_str;
+	    				if(IS64BIT){
+		    				$maxID = (int)$tweet->id - 1;
+			    		}
+				    }
+    				echo l("</ul>");
+	    		}
+		    	echo l("<strong>" . count($favs) . "</strong> favorite own tweets so far\n");
+			    $page++;
+    		} while(!empty($data));
+            
+            // Blank all favorites
+    		$db->query("UPDATE `".DTP."tweets` SET `favorite` = '0'");
+	    	// Insert favorites into DB
+		    $db->query("UPDATE `".DTP."tweets` SET `favorite` = '1' WHERE `tweetid` IN ('" . implode("', '", $favs) . "')");
+    		echo l(good("Updated favorites!"));
+        }
 	}
 	
 	if($p){
@@ -245,7 +262,12 @@
 		if($db->numRows($q) > 0){
 			while($u = $db->fetch($q)){
 				$uid = preg_replace("/[^0-9]+/", "", $u['userid']);
-				echo l("<strong>Trying to grab from user_id=" . $uid . "...</strong>\n");
+				//echo l("<strong>Trying to grab from user_id=" . $uid . "...</strong>\n");
+                if (!empty($config['q'])) {
+				    echo l("<strong>Trying to grab using query = '" . $config['q'] . "' from user_id=" . $uid . "...</strong>\n");
+                } else {
+                    echo l("<strong>Trying to grab from user_id=" . $uid . "...</strong>\n");
+                }
 				importTweets("user_id=" . $uid);
 			}
 		} else {
