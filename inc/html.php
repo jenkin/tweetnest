@@ -156,7 +156,7 @@
 				
 				nl2br(p(highlightQuery($htmlcontent, $tweet), 3)) . "</p>\n" . 
 				
-                $t . "\t<p class=\"meta\">\n" . $t . "\t\t<span class=\"via\">by <a target=\"_blank\" href=\"https://twitter.com/intent/user?user_id=" . s($tweet['userid']) . "\" class=\"permalink\">user</span>\n" .
+                $t . "\t<p class=\"meta\">\n" . $t . "\t\t<span class=\"via\">by user n. <a target=\"_blank\" href=\"https://twitter.com/intent/user?user_id=" . s($tweet['userid']) . "\" class=\"permalink\">" . s($tweet['userid']) . "</span>\n" .
                 "at <span class=\"via\"><a target=\"_blank\" href=\"http://twitter.com/" . s($rt ? $retweet['screenname'] : ($tweet['screenname'] ?: $tweet['userid'])) . "/status/" . s($rt ? $retweet['tweetid'] : $tweet['tweetid']) . "\" class=\"permalink\">" . date("g:i A, M jS, Y", ($rt ? $retweet['time'] : $tweet['time'])) . "</a></span>\n" . 
 				$t . "\t\t<span class=\"via\">via " . ($rt ? $retweet['source'] : $tweet['source']) . "</span>\n" .
 				($rt ? $t . "\t\t<span class=\"rted\">(retweeted on " . date("g:i A, M jS, Y", $tweet['time']) . " <span class=\"via\">via " . $tweet['source'] . "</span>)</span>\n" : "") . 
