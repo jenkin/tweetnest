@@ -156,11 +156,12 @@
 				
 				nl2br(p(highlightQuery($htmlcontent, $tweet), 3)) . "</p>\n" . 
 				
-				$t . "\t<p class=\"meta\">\n" . $t . "\t\t<a href=\"http://twitter.com/" . s($rt ? $retweet['screenname'] : ($tweet['screenname'] ?: $tweet['userid'])) . "/statuses/" . s($rt ? $retweet['tweetid'] : $tweet['tweetid']) . "\" class=\"permalink\">" . date("g:i A, M jS, Y", ($rt ? $retweet['time'] : $tweet['time'])) . "</a>\n" . 
+                $t . "\t<p class=\"meta\">\n" . $t . "\t\t<span class=\"via\">by " . ($tweet['screenname'] ? "<a target=\"_blank\" href=\"https://twitter.com/" . $tweet['screenname'] . "\" class=\"permalink\">" . $tweet['screenname'] . "</a>" : "user n. <a target=\"_blank\" href=\"https://twitter.com/intent/user?user_id=" . s($tweet['userid']) . "\" class=\"permalink\">" . s($tweet['userid']) . "</a>") . "</span>\n" .
+                "at <span class=\"via\"><a target=\"_blank\" href=\"http://twitter.com/" . s($rt ? $retweet['screenname'] : ($tweet['screenname'] ?: $tweet['userid'])) . "/status/" . s($rt ? $retweet['tweetid'] : $tweet['tweetid']) . "\" class=\"permalink\">" . date("g:i A, M jS, Y", ($rt ? $retweet['time'] : $tweet['time'])) . "</a></span>\n" . 
 				$t . "\t\t<span class=\"via\">via " . ($rt ? $retweet['source'] : $tweet['source']) . "</span>\n" .
 				($rt ? $t . "\t\t<span class=\"rted\">(retweeted on " . date("g:i A, M jS, Y", $tweet['time']) . " <span class=\"via\">via " . $tweet['source'] . "</span>)</span>\n" : "") . 
-				((!$rt && $inReplyToTweetId) ? $t . "\t\t<a class=\"replyto\" href=\"http://twitter.com/" . s($tweetextra['in_reply_to_screen_name']) . "/statuses/" . s($inReplyToTweetId) . "\">in reply to " . s($tweetextra['in_reply_to_screen_name']) . "</a>\n" : "") . 
-				(($tweetplace && @$tweetplace->full_name) ? "\t\t<span class=\"place\">from <a href=\"http://maps.google.com/?q=" . urlencode($tweetplace->full_name) . "\">" . s($tweetplace->full_name) . "</a></span>" : "") .
+				((!$rt && $inReplyToTweetId) ? $t . "\t\t<a target=\"_blank\" class=\"replyto\" href=\"http://twitter.com/" . s($tweetextra['in_reply_to_screen_name']) . "/status/" . s($inReplyToTweetId) . "\">in reply to " . s($tweetextra['in_reply_to_screen_name']) . "</a>\n" : "") . 
+				(($tweetplace && @$tweetplace->full_name) ? "\t\t<span class=\"place\">from <a target=\"_blank\" href=\"http://maps.google.com/?q=" . urlencode($tweetplace->full_name) . "\">" . s($tweetplace->full_name) . "</a></span>" : "") .
 				$t . "\t</p>\n" . $t . "</div>\n";
 		$dd = hook("displayTweet", array($d, $tweet));
 		if(!empty($dd)){ $d = $dd[0]; }
