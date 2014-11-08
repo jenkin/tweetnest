@@ -10,7 +10,8 @@
 		'consumer_key'       => '', // Your Twitter app consumer key
 		'consumer_secret'    => '', // Your Twitter app consumer secret
 		'twitter_screenname' => '', // Twitter screen name of the one whose tweets are being recorded
-		'your_tw_screenname' => '', // Your Twitter screen name -- the one we log in as. Usually the same as above, but does not have to be.
+        'your_tw_screenname' => '', // Your Twitter screen name -- the one we log in as. Usually the same as above, but does not have to be.
+        'q'                  => '', // Query string if you want to collect tweets by search and not by user, ie. for hashtag q = '#hashtag'.
 		'twitter_token'      => '', // Twitter OAuth secret token (usually filled in automatically)
 		'twitter_token_secr' => '', // Twitter OAuth token (usually filled in automatically)
 		'timezone'           => '', // Choose one of these: http://php.net/manual/en/timezones.php

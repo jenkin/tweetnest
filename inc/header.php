@@ -3,8 +3,12 @@
 	// HTML Header
 	
 	header("Content-Type: text/html; charset=utf-8");
-	$path = s(rtrim($config['path'], "/"));
-	$headTitle = "Tweets by @" . s($config['twitter_screenname']) . ($pageTitle ? " / " . p(s($pageTitle), 3) : "");
+    $path = s(rtrim($config['path'], "/"));
+    if(!empty($config['q'])) {
+        $headTitle = "Tweets by searching '" . s($config['q']) . "' using @" . s($config['twitter_screenname']) . ($pageTitle ? " / " . p(s($pageTitle), 3) : "");
+    } else {
+        $headTitle = "Tweets by @" . s($config['twitter_screenname']) . ($pageTitle ? " / " . p(s($pageTitle), 3) : "");
+    }
 	$styleFile = (substr($config['css'], 0, 7) == "http://" || substr($config['css'], 0, 8) == "https://") ? $config['css'] : $path . "/" . ltrim($config['css'], "/");
 	unset($config['twitter_password'], $config['db']['password']); // Some sort of security
 ?>
@@ -24,10 +28,14 @@
 		<div id="top">
 			<div id="author">
 				<h2><a href="http://twitter.com/<?php echo s($config['twitter_screenname']); ?>"><strong><?php echo s($author['realname']); ?></strong> (@<?php echo s($config['twitter_screenname']); ?>)<img src="<?php echo s($author['profileimage']); ?>" width="48" height="48" alt="" /></a></h2>
-				<p><?php echo s($author['location']); ?></p>
+				<p><?php echo s($author['location']) . (!empty($config['q']) ? ", searching for '".s($config['q'])."'" : ""); ?></p>
 			</div>
-			<div id="info">
-				<p>The below is an off-site archive of <strong><a href="<?php echo $path; ?>/">all tweets posted by @<?php echo s($config['twitter_screenname']); ?></a></strong> ever</p>
+            <div id="info">
+                <?php if(!empty($config['q'])) { ?>
+                <p>The below is an off-site archive of <strong><a href="<?php echo $path; ?>/">all tweets containing '<?php echo s($config['q']); ?>'</a></strong> collected by <strong><a href="http://twitter.com/<?php echo s($config['twitter_screenname']); ?>">@<?php echo s($config['twitter_screenname']); ?></a></strong></p>
+                <?php } else { ?>
+                <p>The below is an off-site archive of <strong><a href="<?php echo $path; ?>/">all tweets posted by @<?php echo s($config['twitter_screenname']); ?></a></strong> ever</p>
+                <?php } ?>
 <?php if($config['follow_me_button']){ ?>				<p class="follow"><a href="http://twitter.com/<?php echo s($config['twitter_screenname']); ?>">Follow me on Twitter</a></p><?php echo "\n"; } ?>
 			</div>
 		</div>
