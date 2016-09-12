@@ -82,7 +82,11 @@
 			$uid        = $pd['value'];
 			$screenname = $twitterApi->getScreenName($pd['value']);
 		}
-		$tiQ = $db->query("SELECT `tweetid` FROM `".DTP."tweets` WHERE `userid` = '" . $db->s($uid) . "' ORDER BY `time` DESC LIMIT 1");
+        if (isset($config['q'])) {
+            $tiQ = $db->query("SELECT `tweetid` FROM `".DTP."tweets` ORDER BY `time` DESC LIMIT 1");
+        } else {
+            $tiQ = $db->query("SELECT `tweetid` FROM `".DTP."tweets` WHERE `userid` = '" . $db->s($uid) . "' ORDER BY `time` DESC LIMIT 1");
+        }
 		if($db->numRows($tiQ) > 0){
 			$ti      = $db->fetch($tiQ);
 			$sinceID = $ti['tweetid'];
@@ -126,7 +130,7 @@
                 $params['max_id']   = $maxID;
             }
             if(!empty($config['q'])) {
-                $params['q'] = urlencode($config['q']);
+                $params['q'] = $config['q'];
                 $params['result_type'] = 'recent';
             }
 
